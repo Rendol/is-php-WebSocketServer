@@ -1,0 +1,12 @@
+{
+  "name": "InfinitySystems/tmt-journal",
+  "description": "Infinity Systems project TMT: Journal",
+  "minimum-stability": "dev",
+  "license": "proprietary",
+  "authors": [
+    {
+      "name": "Rendol",
+      "email": "sapegin.in@gmail.com"
+    }
+  ]
+}
