@@ -8,5 +8,13 @@
       "name": "Rendol",
       "email": "sapegin.in@gmail.com"
     }
-  ]
+  ],
+  "require": {
+    "php": ">=5.4.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "InfinitySystems\\WebSocketServer\\": "src"
+    }
+  }
 }
