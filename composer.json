@@ -1,5 +1,5 @@
 {
-  "name": "InfinitySystems/is-php-WebSocketServer",
+  "name": "infinity-systems/is-php-web-socket-server",
   "description": "Infinity Systems component WebSocketServer",
   "minimum-stability": "dev",
   "license": "proprietary",
