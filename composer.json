@@ -1,6 +1,6 @@
 {
-  "name": "InfinitySystems/tmt-journal",
-  "description": "Infinity Systems project TMT: Journal",
+  "name": "InfinitySystems/is-php-WebSocketServer",
+  "description": "Infinity Systems component WebSocketServer",
   "minimum-stability": "dev",
   "license": "proprietary",
   "authors": [
