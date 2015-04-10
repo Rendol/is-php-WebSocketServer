@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+	<meta charset="UTF-8">
+	<title></title>
+</head>
+<body onload="run()">
+<script type="application/javascript">
+	function run() {
+		var myWebSocketClient = createWebSocketClient({
+			protocol: 'ws',
+			host: 'localhost',
+			port: 8001,
+			registerId: null,
+			sessionId: null,
+			onOpen: function () {
+
+				/**
+				 * Registration user connect
+				 */
+				myWebSocketClient.send(JSON.stringify({
+					register: {
+						id: 1,
+						sessionId: 'xxxyyyzzz111222333444555'
+					}
+				}));
+
+				setTimeout(function () {
+					myWebSocketClient.send(JSON.stringify(
+							{
+								'method': 'UserList'
+							}
+					));
+				}, 1000);
+
+				window['wsc'] = myWebSocketClient;
+				/*
+				 For console test
+				 wsc.send(JSON.stringify({method: 'UserList'}))
+				 wsc.send(JSON.stringify({method: 'UserStatus', params: [false]}))
+				 */
+			},
+			onMessage: function (data) {
+				console.log(data);
+			}
+		});
+	}
+	function createWebSocketClient(o) {
+		var socket = new WebSocket(o.protocol + '://' + o.host + ':' + o.port + '/');
+		socket.onopen = function (msg) {
+			o.onOpen();
+		};
+		socket.onmessage = function (msg) {
+			if (msg.data) {
+				var data = JSON.parse('' + msg.data);
+				o.onMessage(data);
+			}
+		};
+		socket.onclose = function (msg) {
+			// Reconnect
+			setTimeout(function () {
+				location.href = '?';
+			}, 1000);
+		};
+		return socket;
+	}
+</script>
+</body>
+</html>
