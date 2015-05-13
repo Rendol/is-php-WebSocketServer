@@ -36,13 +36,20 @@ class Events
 	public $cmdClass;
 
 	/**
+	 * @var string
+	 */
+	public $userClass;
+
+	/**
 	 * @param $service Service
 	 * @param $cmdClass string
+	 * @param $userClass string
 	 */
-	public function __construct($service, $cmdClass)
+	public function __construct($service, $cmdClass, $userClass = 'InfinitySystems\WebSocketServer\User')
 	{
 		$this->service = $service;
 		$this->cmdClass = $cmdClass;
+		$this->userClass = $userClass;
 	}
 
 	public function getAll()
@@ -231,7 +238,7 @@ class Events
 		if ($registerId) {
 			$users = &$this->store['users'];
 			if (empty($users[$registerId])) {
-				$users[$registerId] = User::findOne($registerId);
+				$users[$registerId] = call_user_func([$this->userClass, 'findOne'], $registerId);
 			}
 			$user = $users[$registerId];
 		}
