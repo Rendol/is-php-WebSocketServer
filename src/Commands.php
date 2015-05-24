@@ -44,18 +44,16 @@ class Commands
 	}
 
 	/**
-	 * @param array $data
+	 * @param string $method
+	 * @param array $params
 	 * @return array
 	 */
-	public function run($data)
+	public function run($method, $params)
 	{
-		if (isset($data['method'])) {
-			return call_user_func_array(
-				[$this, 'cmd' . $data['method']],
-				isset($data['params']) ? $data['params'] : []
-			);
-		}
-		return null;
+		return call_user_func_array(
+			[$this, 'cmd' . $method],
+			$params
+		);
 	}
 
 	/**

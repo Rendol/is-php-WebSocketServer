@@ -15,6 +15,16 @@ use Exception;
  */
 class Service
 {
+	const TYPE_ID_WELCOME = 0;
+	const TYPE_ID_PREFIX = 1;
+	const TYPE_ID_CALL = 2;
+	const TYPE_ID_CALLRESULT = 3;
+	const TYPE_ID_ERROR = 4;
+	const TYPE_ID_SUBSCRIBE = 5;
+	const TYPE_ID_UNSUBSCRIBE = 6;
+	const TYPE_ID_PUBLISH = 7;
+	const TYPE_ID_EVENT = 8;
+
 	/**
 	 * @var array Опции сервера
 	 */
@@ -171,10 +181,13 @@ class Service
 					} catch (\Exception $e) {
 						$this->sendMessage(
 							[
-								'Exception' => [
-									'message' => $e->getMessage(),
-									'code' => $e->getCode(),
-									'trace' => $e->getTraceAsString(),
+								0 => static::TYPE_ID_ERROR,
+								[
+									'Exception' => [
+										'message' => $e->getMessage(),
+										'code' => $e->getCode(),
+										'trace' => $e->getTraceAsString(),
+									]
 								]
 							],
 							[
@@ -328,8 +341,9 @@ class Service
 			"Connection: Upgrade\r\n" .
 			"WebSocket-Origin: $host\r\n" .
 			//"WebSocket-Location: ws://$host:$port/demo/shout.php\r\n".
-			"Sec-WebSocket-Accept:$secAccept\r\n\r\n";
+			"Sec-WebSocket-Accept: $secAccept\r\n\r\n"
+			. $this->_mask(json_encode([static::TYPE_ID_WELCOME]));
 		socket_write($connection_conn, $upgrade, strlen($upgrade));
 		unset($port);
 	}
-} 
+}

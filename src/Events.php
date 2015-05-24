@@ -75,31 +75,38 @@ class Events
 
 	/**
 	 * @param resource $connection
-	 * @param array $data
+	 * @param array $params
 	 * @throws Exception
 	 */
-	public function eventRegister($connection, $data)
+	public function eventRegister($connection, $params)
 	{
 		$connectionId = intval($connection);
 
-		if (!isset($data['id'], $data['sessionId'])) {
+		if (!isset($params['id'], $params['sessionId'])) {
 			throw new Exception('Not found required attributes for register!');
 		} else {
 
 			@session_regenerate_id();
 			@session_destroy();
-			session_id($data['sessionId']);
+			session_id($params['sessionId']);
 			session_start();
 
 			if (!isset($_SESSION[$this->sessionKey])) {
 				throw new Exception('Not found "id" in session data!');
 			} else {
-				if ($data['id'] == $_SESSION[$this->sessionKey]) {
-					$this->service->registers[$connectionId] = $data['id'];
-					$this->runCommand([
-						'method' => 'UserStatus',
-						'params' => [true]
-					], $connectionId, $data['id']);
+				if ($params['id'] == $_SESSION[$this->sessionKey]) {
+					$this->service->registers[$connectionId] = $params['id'];
+
+					$this->service->sendMessage(
+						[
+							0 => Service::TYPE_ID_SUBSCRIBE,
+						],
+						[
+							//'connectionId' => $connectionId
+						]
+					);
+
+					$this->runCommand('UserStatus', [true], $connectionId, $params['id']);
 				}
 			}
 
@@ -119,25 +126,34 @@ class Events
 		if (3 == $status) {
 			$this->eventDisconnect($connection);
 		} else {
-			$connectionId = intval($connection);
-			if (!isset($this->service->registers[$connectionId])) {
-				// Регистрация
-				if (isset($data['register'])) {
-					$this->eventRegister($connection, $data['register']);
+			if (isset($data[1])) {
+				$method = $data[1];
+				$params = isset($data[2]) ? $data[2] : [];
+
+				$connectionId = intval($connection);
+				if (!isset($this->service->registers[$connectionId])) {
+					// Регистрация
+					if ($method == 'register') {
+						$this->eventRegister($connection, $params);
+					}
+				} // Сообщение зарегистрированному пользователю
+				else {
+					$this->runCommand($method, $params, $connectionId);
 				}
-			} // Сообщение зарегистрированному пользователю
-			else {
-				$this->runCommand($data, $connectionId);
-			}
-			if (isset($data['callback'])) {
-				$this->service->sendMessage(
-					[
-						'callback' => $data['callback']
-					],
-					[
-						'connectionId' => $connectionId
-					]
-				);
+
+				if (isset($data[3])) {
+					$this->service->sendMessage(
+						[
+							Service::TYPE_ID_CALLRESULT,
+							[
+								'callback' => $data[3]
+							]
+						],
+						[
+							'connectionId' => $connectionId
+						]
+					);
+				}
 			}
 		}
 	}
@@ -151,23 +167,25 @@ class Events
 	}
 
 	/**
-	 * @param $data
+	 * @param $method
+	 * @param $params
 	 * @param $connectionId
 	 * @param null $registerId
 	 * @return bool
 	 */
-	public function eventBeforeRunCommand($data, $connectionId, $registerId)
+	public function eventBeforeRunCommand($method, $params, $connectionId, $registerId)
 	{
 		return true;
 	}
 
 	/**
 	 * @param $result
-	 * @param $data
+	 * @param $method
+	 * @param $params
 	 * @param $connectionId
 	 * @param $registerId
 	 */
-	public function eventAfterRunCommand($result, $data, $connectionId, $registerId)
+	public function eventAfterRunCommand($result, $method, $params, $connectionId, $registerId)
 	{
 		//
 	}
@@ -182,10 +200,15 @@ class Events
 		unset($this->service->registers[$connectionId]);
 		if (!in_array($registerId, $this->service->registers)) {
 			unset($this->store['users'][$registerId]);
-			$this->runCommand([
-				'method' => 'UserStatus',
-				'params' => [false]
-			], $connectionId, $registerId);
+			$this->service->sendMessage(
+				[
+					0 => Service::TYPE_ID_UNSUBSCRIBE,
+				],
+				[
+					'connectionId' => $connectionId
+				]
+			);
+			$this->runCommand('UserStatus', [false], $connectionId, $registerId);
 		}
 	}
 
@@ -194,9 +217,9 @@ class Events
 	 * @param integer $connectionId
 	 * @param integer $registerId
 	 */
-	public function runCommand($data, $connectionId, $registerId = null)
+	public function runCommand($method, $params, $connectionId, $registerId = null)
 	{
-		if ($this->eventBeforeRunCommand($data, $connectionId, $registerId)) {
+		if ($this->eventBeforeRunCommand($method, $params, $connectionId, $registerId)) {
 
 			if (empty($registerId)) {
 				$registerId = $this->service->registers[$connectionId];
@@ -210,16 +233,20 @@ class Events
 				'users' => &$this->store['users'],
 				'connectionId' => $connectionId
 			]);
-			$messageParams = $cmd->run($data);
-
-			if ($messageParams) {
-				call_user_func_array(
+			$results = $cmd->run($method, $params);
+			if ($results) {
+				call_user_func(
 					[$this->service, 'sendMessage'],
-					$messageParams
+					[
+						Service::TYPE_ID_EVENT,
+						$results[0],
+						$params
+					],
+					isset($results[1]) ? $results[1] : []
 				);
 			}
 
-			$this->eventAfterRunCommand($messageParams, $data, $connectionId, $registerId);
+			$this->eventAfterRunCommand($results, $method, $params, $connectionId, $registerId);
 		}
 	}
 
